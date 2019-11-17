@@ -75,29 +75,25 @@ bootimp_list[[j]] <- boot_temp$imp
 # PCA has one objective
 #1. Summary a dataset (whith a lot of variable) by a new dataset with less variables (uncorelated between them) and keep all the information from the initial data set
 
+
+
+
+#!!!!! IMPORTANT NOTE!!!!!!! 
+#!!! The varaibles below here need to be modified when we put it in a loop.!!!!
+
+
+#This work is based on the slides.
 cor(base4[,-c(4)])
 # PCA is legitimate because variables are corelated
 
+nb <- estim_ncpPCA(base3)
+res.comp <- imputePCA(df2, ncp = nb$ncp) #note that nb$ncp = 0
+res.comp$completeObs[1:3, ]
+
+
+
 library(FactoMineR)
-resuacp=PCA(base4[,-c(4)])
-resuacp$eig
-tabeigenvalue=resuacp$eig[,1]
-plot(tabeigenvalue)
-lines(tabeigenvalue)
-# We have 3 criterias
-# 1. The cumulative percentage of variance must be greater than 70%, with this criteria we're going to take 2 components
-# 2. The eigen-value greater than 1, so we will take 2 components
-# 3. When the slope of eigenvalue graph change a lot, so with this criteria we will take 2 components.
+imp1df2pca <- PCA(df2, ncp = nb$ncp) #this pca method only does mean imputation.
 
-result=PCA(base4[,-c(4)],ncp=2)
-result$var
-result$var$contrib
-# threshold=100/number of variable in the first dataset = 100/3 = 33,3%
-# The variables which contribuate to the component 1 are waget and educ
-# Only exper contribuates to the component 2
-# We can see also the component 1 is strongly correlated with waget and educ and the component 2 with exper
 
-# Multiple imputations with PCA
-library(missMDA)
-resmi=imputePCA(base4[-c(4)],ncp=2,coeff.ridge=1,method="Regularized")
-plot(resmi)
+plot.PCA(imp1df2pca)
