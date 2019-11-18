@@ -1,7 +1,7 @@
 load("~/Desktop/LEARNING/M1/S1/Math Stats 1/Project/men7988_cell.RData")
 base1=test
 base2=subset(base1,base1$year88==1)
-base3=base2[,c(7,18,19)]
+base3=base2[,c(7,18,19)] # our UNIMPUTED dataset
 library(mice)
 
 dummy_na = function(elt)
@@ -69,30 +69,48 @@ bootimp_list[[j]] <- boot_temp$imp
 
 }
 
-#QUESTION 3 #######
 
+#QUESTION 3 #######
+library(MissSDA)
 # PCA methods
 # PCA has one objective
 #1. Summary a dataset (whith a lot of variable) by a new dataset with less variables (uncorelated between them) and keep all the information from the initial data set
 
+library(FactoMineR)
+resuacp=PCA(amputed_list[[1]])
+resuacp$eig
+tabeigenvalue=resuacp$eig[,1]
+plot(tabeigenvalue)
+lines(tabeigenvalue)
+
+
+# We have 3 criterias
+# 1. The cumulative percentage of variance must be greater than 70%, with this criteria we're going to take 2 components
+# 2. The eigen-value greater than 1, so we will take 2 components
+# 3. When the slope of eigenvalue graph change a lot, so with this criteria we will take 2 components.
 
 
 
-#!!!!! IMPORTANT NOTE!!!!!!! 
-#!!! The varaibles below here need to be modified when we put it in a loop.!!!!
-
+#regularized , iterative PCA
 
 #This work is based on the slides.
-cor(base4[,-c(4)])
-# PCA is legitimate because variables are corelated
+cor(base3[,-c(4)])
 
-nb <- estim_ncpPCA(base3)
-res.comp <- imputePCA(df2, ncp = nb$ncp) #note that nb$ncp = 0
+
+#for(j in 1:M){
+res.MIPCA <- MIPCA(amputed_list[[1]], ncp = 2, nboot  = B, method="Regularized") #note that nb$ncp = 0
+res.MIPCA$res.MI
+#}
+
+
 res.comp$completeObs[1:3, ]
 
 
 
-library(FactoMineR)
+
+
+
+#removed FactoMineR because instructed to use Miss SDA
 imp1df2pca <- PCA(df2, ncp = nb$ncp) #this pca method only does mean imputation.
 
 
