@@ -48,23 +48,11 @@ for(j in 1:M){
   RegImp_params[]<- lm(waget ~ exper + educ, data=RegImp_list[[j]])$coefficients
 }
 
+#Calculate Bias for RegImp #######
+RegImp_Bias_estimate <- colSums(RegImp_params)*(1/M) - B_C
 
-my_lms <- lapply(1:M, function(x) lm(waget ~ educ + exper, data <- RegImp_list[[j]]))
-sapply(my_lms, coef)
-
-
-#Initialize objects for variance and s.e. calculation #UNFINISHED
-std_error= matrix(nrow=74661,ncol = M)
-var= matrix(nrow= 74661,ncol = M)
-#Loop: Calculate the Standard Error and Variance for ???
-for(j in 1:M){
-
-#NOTE: this is unfinished.
-std_error[,j]= base4[,c(1)] - B_C
-var[,j]= std_error[,j]^2
-}
-est_bias= 1/M * sum(std_error[1])
-est_var=1/M * sum(var[1])
+#Calculate Variance for RegImp ######
+RegImp_var_estimate <- ((colSums(RegImp_params - RegImp_Bias_estimate))^2)*(1/M)
 
 #QUESTION 2 #######
 # B numbers of imputation
@@ -75,10 +63,50 @@ bootimp_list <- list()
 
 #loop for generating M imputed datasets
 for(j in 1:M){
+  templist <- list()
+  for(i in 1:B){
 boot_temp <- mice(amputed_list[[j]], m=B, method="norm.boot")
-bootimp_list[[j]] <- boot_temp$imp
-
+ templist[[i]] <-  complete(boot_temp,i) #you need to use complete(boot_temp, number of imputed set) to generate proper impute data
+  }
+  bootimp_list[[j]] <- templist
 }
+# bootimp_list[[M]][[B]] gives you the Bth imputed dataframe the Mth amputed data.
+
+#Run regression on BootImp =====
+#construct a list object with M matrixes with B columns for holding coefficients from imputations.
+bootimp_Reg_list <- list()
+for(j in 1:M){
+  bootimp_Reg_list[[j]] <- matrix(nrow=B,ncol=3)
+}
+#bootimp_Reg_list[[M]][B,] gives you the set of coefficients from the Bth imputation of the M set.
+
+# get the regressions and assign them to our object
+for(j in 1:M){
+  for(i in 1:B){
+    bootimp_temp <- lm(waget ~ educ + exper , data = bootimp_list[[j]][[i]])
+    bootimp_Reg_list[[j]][i,] <- bootimp_temp$coefficients
+  }
+}
+
+# CALCULATE BIAS AND VARIANCE FOR BOOTIMP -----
+
+#Calculate Bias:
+#See proof in notes that this is valid.
+boot_summedCols <- matrix(ncol=3, nrow=M)
+for(j in 1:M){boot_summedCols[j,] <- colSums(bootimp_Reg_list[[j]])}
+boot_summedCols <- (1/B)*boot_summedCols
+boot_Bias <- (1/M)*(colSums(boot_summedCols)) - B_C
+
+#Calculate Variance:
+#(1) Calculate variance for each M using the coeffs in B imputations:
+boot_variance <- matrix(ncol=3,nrow=M)
+for(j in 1:M){
+  boot_variance[j,1] <- var(bootimp_Reg_list[[M]][,1]) #intercept
+  boot_variance[j,2] <- var(bootimp_Reg_list[[M]][,2]) #educ
+  boot_variance[j,3] <- var(bootimp_Reg_list[[M]][,3]) #exper
+}
+#Take the average of these:
+boot_var_estimator <- (1/M)*colSums(boot_variance)
 
 
 #QUESTION 3 #######
@@ -94,7 +122,7 @@ PCA_list[[j]] <- res.MIPCA$res.MI
 }
 #PCA_list : a list of dataframes. PCA_list[[M]][B][,1] gives you the Bth imputation from the M set.
 
-
+#Run regression for PCA --------
 
 #create a list object with M matrixes with B columns for holding coefficients from imputations.
 PCA_Reg_list <- list()
@@ -112,7 +140,7 @@ for(j in 1:M){
 }
 #PCA_Reg_list[[M]][B,] gives you the three coefficients (Intercept, educ, exper) for the Bth imputation of the Mth set.
 
-# CALCULATE BIAS AND VARIANCE FOR PCA -----
+# CALCULATE BIAS AND VARIANCE FOR PCA (Slide39/61Josse) -----
 
 #Calculate Bias:
 #See proof in notes that this is valid.
