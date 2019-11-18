@@ -12,8 +12,9 @@ dummy_na = function(elt)
   return(x)
 }
 
-#calculate ???
-B_C=base3[,c(1)]
+#create parameter estimates using complete data:
+
+B_C=lm(waget ~ exper + educ, data=base3)$coefficients
 
 #number of amputed data sets to create
 M=2
@@ -32,6 +33,7 @@ for (j in 1:M) {
 
 #Note: to access a data frame in our list, for example the first data frame, you type amputed_list[[1]]
 
+#QUESTION 1 #######
 #Create a list of data frames for imputation by regression
 RegImp_list <- list()
 #Loop: to run over all amputed sets.
@@ -40,7 +42,11 @@ for(j in 1:M){
   RegImp_list[[j]] <- regressionImp(waget~ educ + exper, data=amputed_list[[j]])
 }
 
-
+#create parameter estimates for this
+RegImp_params <- matrix(nrow=M,ncol=3)
+for(j in 1:M){
+  RegImp_params[]<- lm(waget ~ exper + educ, data=RegImp_list[[j]])$coefficients
+}
 
 #Initialize objects for variance and s.e. calculation
 std_error= matrix(nrow=74661,ncol = M)
@@ -102,3 +108,13 @@ result$var$contrib
 res.MIPCA <- MIPCA(amputed_list[[1]], ncp = 2, nboot  = B, method="Regularized") #note that nb$ncp = 0
 res.MIPCA$res.MI
 #}
+
+
+calculate_var_PCA <- function(x,y) {
+  
+  for(j in 1:M){
+    
+  }
+  lm()
+
+}
