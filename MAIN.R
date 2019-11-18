@@ -48,7 +48,12 @@ for(j in 1:M){
   RegImp_params[]<- lm(waget ~ exper + educ, data=RegImp_list[[j]])$coefficients
 }
 
-#Initialize objects for variance and s.e. calculation
+
+my_lms <- lapply(1:M, function(x) lm(waget ~ educ + exper, data <- RegImp_list[[j]]))
+sapply(my_lms, coef)
+
+
+#Initialize objects for variance and s.e. calculation #UNFINISHED
 std_error= matrix(nrow=74661,ncol = M)
 var= matrix(nrow= 74661,ncol = M)
 #Loop: Calculate the Standard Error and Variance for ???
@@ -110,11 +115,24 @@ res.MIPCA$res.MI
 #}
 
 
-calculate_var_PCA <- function(x,y) {
-  
-  for(j in 1:M){
-    
-  }
-  lm()
+# GRAPH GENERATION SECTION ######
 
-}
+#A graph of one M from linear regression version. This visualizes the difference in imputed and amputed data.
+
+temp_df <- RegImp_list[[1]]
+temp_df$before_imp <- amputed_list[[1]]$waget
+temp_df$original_waget <- base3$waget
+ggplot() + 
+  geom_point(data=base3, aes(waget,educ), colour = 'black' ,position = 'jitter') + 
+  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(original_waget,educ), colour = 'green', alpha=0.4, position = 'jitter') + #original data that got amputed
+  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(waget,educ), colour = 'red', alpha=0.4,position = 'jitter') +
+  scale_x_continuous(limits = c(0, 100))
+
+#graph with imputed value on Y axis and original value on X axis
+ggplot() + 
+  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(original_waget,waget), colour = 'blue', alpha=0.1)+
+  scale_x_continuous(limits = c(0, 50))
+
+
+# it is clear from our graph that the imputed data is following a linear regression/
+# it has no difference in variance.
