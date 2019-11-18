@@ -82,31 +82,7 @@ bootimp_list[[j]] <- boot_temp$imp
 
 
 #QUESTION 3 #######
-# PCA methods
-# PCA has one objective
-#1. Summary a dataset (whith a lot of variable) by a new dataset with less variables (uncorelated between them) and keep all the information from the initial data set
 
-cor((amputed_list[[1]])[,-c(4)]) # NEED TO PUT INSIDE A LOOP
-# PCA is legitimate because variables are corelated
-
-library(FactoMineR)
-resuacp=PCA(amputed_list[[1]])
-resuacp$eig
-tabeigenvalue=resuacp$eig[,1]
-plot(tabeigenvalue)
-lines(tabeigenvalue)
-# We have 3 criterias
-# 1. The cumulative percentage of variance must be greater than 70%, with this criteria we're going to take 2 components
-# 2. The eigen-value greater than 1, so we will take 2 components
-# 3. When the slope of eigenvalue graph change a lot, so with this criteria we will take 2 components.
-
-result=PCA(amputed_list[[1]],ncp=2)
-result$var
-result$var$contrib
-# threshold=100/number of variable in the first dataset = 100/3 = 33,3%
-# The variables which contribuate to the component 1 are waget and educ
-# Only exper contribuates to the component 2
-# We can see also the component 1 is strongly correlated with waget and educ and the component 2 with exper
 
 
 #Sherman Version # slide 46 /61------- 
