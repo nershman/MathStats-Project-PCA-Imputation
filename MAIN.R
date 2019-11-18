@@ -49,10 +49,11 @@ for(j in 1:M){
 }
 
 #Calculate Bias for RegImp #######
-RegImp_Bias_estimate <- colSums(RegImp_params)*(1/M) - B_C
+RegImp_Bias_estimate <- (colSums(RegImp_params)*(1/M) - B_C)
 
 #Calculate Variance for RegImp ######
-RegImp_var_estimate <- ((colSums(RegImp_params - RegImp_Bias_estimate))^2)*(1/M)
+RegImpmean <- colSums(RegImp_params)*(1/M)
+RegImp_var_estimate <- colSums((RegImp_params - RegImpmean)^2)*(1/M)
 
 #QUESTION 2 #######
 # B numbers of imputation
@@ -98,7 +99,9 @@ boot_summedCols <- (1/B)*boot_summedCols
 boot_Bias <- (1/M)*(colSums(boot_summedCols)) - B_C
 
 #Calculate Variance:
+boot_mean <- boot_Bias + B_C
 #(1) Calculate variance for each M using the coeffs in B imputations:
+
 boot_variance <- matrix(ncol=3,nrow=M)
 for(j in 1:M){
   boot_variance[j,1] <- var(bootimp_Reg_list[[M]][,1]) #intercept
@@ -106,7 +109,7 @@ for(j in 1:M){
   boot_variance[j,3] <- var(bootimp_Reg_list[[M]][,3]) #exper
 }
 #Take the average of these:
-boot_var_estimator <- (1/M)*colSums(boot_variance)
+boot_var_estimator <- (1/M)*((colSums((boot_variance - boot_mean)^2)))
 
 
 #QUESTION 3 #######
@@ -150,6 +153,7 @@ summedCols <- (1/B)*summedCols
 PCA_Bias <- (1/M)*(colSums(summedCols)) - B_C
 
 #Calculate Variance:
+PCA_mean <- PCA_Bias + B_C
 #(1) Calculate variance for each M using the coeffs in B imputations:
 PCA_variance <- matrix(ncol=3,nrow=M)
 for(j in 1:M){
@@ -158,37 +162,9 @@ PCA_variance[j,2] <- var(PCA_Reg_list[[M]][,2]) #educ
 PCA_variance[j,3] <- var(PCA_Reg_list[[M]][,3]) #exper
 }
 #Take the average of these:
-PCA_var_estimator <- (1/M)*colSums(PCA_variance)
+PCA_var_estimator <- (1/M)*colSums((PCA_variance - PCA_mean)^2)
 
 
-
-
-# SHIN'S CODE. POSSIBLY OBSOLETE ----------
-# Create four empty matrix to store coefficients from imputed data, std, and bias
-betaM <-matrix( nrow = M, ncol = 1)
-stdM <- matrix( nrow = M, ncol = 1)
-bias  <- matrix( nrow = M, ncol = 1)
-est_var <- matrix(nrow = M, ncol = 1)
-
-#res.comp$completeObs[1:3, ]
-Imputed_matrix <-matrix( nrow = 74661, ncol = M)
-
-for(j in 1:M){
-  res.comp <- imputePCA(amputed_list[[j]],  ncp = 2, method = c("Regularized") )
-  Temp<-res.comp[[1]]
-  # Get imputed waget (stacking in each column)
-  Imputed_matrix[,c(j)] <- Temp[,c(1)]
-  
-  #Now we want to do lm(Imputed_matrix[,c(j)]~educ_C+exper_C 
-  wage_imp <-Imputed_matrix[,c(j)]
-  fit <- lm(wage_imp ~educ_C + exper_C , data = Original)
-  summary_temp=coef(summary(fit))
-  betaM[j,] <- summary_temp[2,c(1) ]
-  stdM[j,] <- summary_temp[ 2,c(2) ]
-  bias[j,] <- betaC- betaM[j,]
-}
-
-est_bias_pca <- 1/M * sum( bias   )
 
 
 # GRAPH GENERATION SECTION ######
