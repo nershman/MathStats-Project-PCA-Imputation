@@ -42,7 +42,7 @@ for(j in 1:M){
   RegImp_list[[j]] <- regressionImp(waget~ educ + exper, data=amputed_list[[j]])
 }
 
-#create parameter estimates for this
+#create parameter estimates from the M regression-imputed datasets
 RegImp_params <- matrix(nrow=M,ncol=3)
 for(j in 1:M){
   RegImp_params[]<- lm(waget ~ exper + educ, data=RegImp_list[[j]])$coefficients
@@ -109,7 +109,7 @@ result$var$contrib
 # We can see also the component 1 is strongly correlated with waget and educ and the component 2 with exper
 
 
-#Sherman Version ------- # slide 46 /61
+#Sherman Version # slide 46 /61------- 
 
 PCA_list <- list()
 for(j in 1:M){
@@ -138,10 +138,28 @@ for(j in 1:M){
 
 # CALCULATE BIAS AND VARIANCE FOR PCA -----
 
-#Bias
+#Calculate Bias:
+#See proof in notes that this is valid.
+summedCols <- matrix(ncol=3, nrow=M)
+for(j in 1:M){summedCols[j,] <- colSums(PCA_Reg_list[[j]])}
+summedCols <- (1/B)*summedCols
+PCA_Bias <- (1/M)*(colSums(summedCols)) - B_C
+
+#Calculate Variance:
+#(1) Calculate variance for each M using the coeffs in B imputations:
+PCA_variance <- matrix(ncol=3,nrow=M)
+for(j in 1:M){
+PCA_variance[j,1] <- var(PCA_Reg_list[[M]][,1]) #intercept
+PCA_variance[j,2] <- var(PCA_Reg_list[[M]][,2]) #educ
+PCA_variance[j,3] <- var(PCA_Reg_list[[M]][,3]) #exper
+}
+#Take the average of these:
+PCA_var_estimator <- (1/M)*colSums(PCA_variance)
 
 
-# SHIN'S CODE. NOT TEST OR ADAPTED FOR EFFICIENCY YET.
+
+
+# SHIN'S CODE. POSSIBLY OBSOLETE ----------
 # Create four empty matrix to store coefficients from imputed data, std, and bias
 betaM <-matrix( nrow = M, ncol = 1)
 stdM <- matrix( nrow = M, ncol = 1)
