@@ -124,8 +124,8 @@ temp_df$before_imp <- amputed_list[[1]]$waget
 temp_df$original_waget <- base3$waget
 ggplot() + 
   geom_point(data=base3, aes(waget,educ), colour = 'black' ,position = 'jitter') + 
-  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(original_waget,educ), colour = 'green', alpha=0.4, position = 'jitter') + #original data that got amputed
-  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(waget,educ), colour = 'red', alpha=0.4,position = 'jitter') +
+  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(original_waget,educ), colour = 'green', alpha=0.4, position = 'jitter', shape = 1) + #original data that got amputed
+  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(waget,educ), colour = 'red', alpha=0.4,position = 'jitter', shape = 1) +
   scale_x_continuous(limits = c(0, 100))
 
 #graph with imputed value on Y axis and original value on X axis
