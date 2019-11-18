@@ -109,10 +109,64 @@ result$var$contrib
 # We can see also the component 1 is strongly correlated with waget and educ and the component 2 with exper
 
 
-#for(j in 1:M){
-res.MIPCA <- MIPCA(amputed_list[[1]], ncp = 2, nboot  = B, method="Regularized") #note that nb$ncp = 0
-res.MIPCA$res.MI
-#}
+#Sherman Version ------- # slide 46 /61
+
+PCA_list <- list()
+for(j in 1:M){
+res.MIPCA <- MIPCA(amputed_list[[1]], ncp = 2, nboot  = B, method="Regularized") 
+PCA_list[[j]] <- res.MIPCA$res.MI
+}
+#PCA_list : a list of dataframes. PCA_list[[M]][B][,1] gives you the Bth imputation from the M set.
+
+
+
+#create a list object with M matrixes with B columns for holding coefficients from imputations.
+PCA_Reg_list <- list()
+for(j in 1:M){
+  PCA_Reg_list[[j]] <- matrix(nrow=B,ncol=3)
+}
+#PCA_Reg_list[[M]][B,] gives you the set of coefficients from the Bth imputation of the M set.
+
+# get the regressions and assign them to our object
+for(j in 1:M){
+  for(i in 1:B){
+    pca_temp <- lm(waget ~ educ + exper , data = PCA_list[[j]][[i]])
+    PCA_Reg_list[[j]][i,] <- pca_temp$coefficients
+  }
+}
+#PCA_Reg_list[[M]][B,] gives you the three coefficients (Intercept, educ, exper) for the Bth imputation of the Mth set.
+
+# CALCULATE BIAS AND VARIANCE FOR PCA -----
+
+#Bias
+
+
+# SHIN'S CODE. NOT TEST OR ADAPTED FOR EFFICIENCY YET.
+# Create four empty matrix to store coefficients from imputed data, std, and bias
+betaM <-matrix( nrow = M, ncol = 1)
+stdM <- matrix( nrow = M, ncol = 1)
+bias  <- matrix( nrow = M, ncol = 1)
+est_var <- matrix(nrow = M, ncol = 1)
+
+#res.comp$completeObs[1:3, ]
+Imputed_matrix <-matrix( nrow = 74661, ncol = M)
+
+for(j in 1:M){
+  res.comp <- imputePCA(amputed_list[[j]],  ncp = 2, method = c("Regularized") )
+  Temp<-res.comp[[1]]
+  # Get imputed waget (stacking in each column)
+  Imputed_matrix[,c(j)] <- Temp[,c(1)]
+  
+  #Now we want to do lm(Imputed_matrix[,c(j)]~educ_C+exper_C 
+  wage_imp <-Imputed_matrix[,c(j)]
+  fit <- lm(wage_imp ~educ_C + exper_C , data = Original)
+  summary_temp=coef(summary(fit))
+  betaM[j,] <- summary_temp[2,c(1) ]
+  stdM[j,] <- summary_temp[ 2,c(2) ]
+  bias[j,] <- betaC- betaM[j,]
+}
+
+est_bias_pca <- 1/M * sum( bias   )
 
 
 # GRAPH GENERATION SECTION ######
@@ -136,3 +190,11 @@ ggplot() +
 
 # it is clear from our graph that the imputed data is following a linear regression/
 # it has no difference in variance.
+
+
+# PCA graphs
+
+# library(Amelia)
+#> res.amelia <- amelia(don, m = 100)
+#> compare.density(res.amelia, var = "T12")
+#> overimpute(res.amelia, var = "maxO3")
