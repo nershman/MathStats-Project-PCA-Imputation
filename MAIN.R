@@ -2,22 +2,15 @@ load("~/Desktop/LEARNING/M1/S1/Math Stats 1/Project/men7988_cell.RData")
 base1=test
 base2=subset(base1,base1$year88==1)
 base3=base2[,c(7,18,19)] # our UNIMPUTED dataset
+base3$waget <- log(base3$waget) # transform wage to log(wage)
 library(mice)
-
-dummy_na = function(elt)
-{
-  x = dim(length(elt)) 
-  x[which(!is.na(elt))] = 1
-  x[which(is.na(elt))] = 0
-  return(x)
-}
 
 #create parameter estimates using complete data:
 
 B_C=lm(waget ~ exper + educ, data=base3)$coefficients
 
 #number of amputed data sets to create
-M=2
+M=20
 
 onlywagetpattern= c(0,1,1) #only ampute waget.
 
