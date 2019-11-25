@@ -107,9 +107,7 @@ boot_var_estimator <- (1/M)*((colSums((boot_variance - boot_mean)^2)))
 
 #QUESTION 3 #######
 
-
-
-#Sherman Version # slide 46 /61------- 
+# We use NCP = 2 because we have two regressors educ and exper.
 
 PCA_list <- list()
 for(j in 1:M){
