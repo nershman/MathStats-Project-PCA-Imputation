@@ -11,7 +11,7 @@ B_C=lm(waget ~ exper + educ, data=base3)$coefficients
 
 #number of amputed data sets to create
 M=20
-
+ 
 onlywagetpattern= c(0,1,1) #only ampute waget.
 
 #create a matrix to assign our imputed data into.
