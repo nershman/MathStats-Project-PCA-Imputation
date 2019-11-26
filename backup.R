@@ -11,19 +11,18 @@ B_C=lm(waget ~ exper + educ, data=base3)$coefficients
 
 #number of amputed data sets to create
 M=20
- 
+
 onlywagetpattern= c(0,1,1) #only ampute waget.
-amputed_list = list() #create a matrix to assign our imputed data into.
+
+#create a matrix to assign our imputed data into.
+amputed_list = list()
 
 #Loop: generate M amputed data sets.
 for (j in 1:M) {
-  ampute1<- ampute(base3,prop=0.40,mech="MCAR",patterns = onlywagetpattern)
+  ampute1<- ampute(base3,prop=0.40,mech="MCAR",patterns = onlywagetpattern) # I think this has to be an arrow, I'm not sure why.
   #assigned each data frame generated into the list
   amputed_list[[j]] = ampute1$amp
 }
-
-#save the generated data
-save(amputed_list,    file = "FixedData.RData")
 
 #Note: to access a data frame in our list, for example the first data frame, you type amputed_list[[1]]
 
@@ -32,7 +31,7 @@ save(amputed_list,    file = "FixedData.RData")
 RegImp_list <- list()
 #Loop: to run over all amputed sets.
 for(j in 1:M){
-#impute data to a new df using simple regression Imputation
+  #impute data to a new df using simple regression Imputation
   RegImp_list[[j]] <- regressionImp(waget~ educ + exper, data=amputed_list[[j]])
 }
 
@@ -42,25 +41,26 @@ for(j in 1:M){
   RegImp_params[]<- lm(waget ~ exper + educ, data=RegImp_list[[j]])$coefficients
 }
 
-#Q1: Calculate Bias for RegImp #######
+#Calculate Bias for RegImp #######
 RegImp_Bias_estimate <- (colSums(RegImp_params)*(1/M) - B_C)
 
-#Q2: Calculate Variance for RegImp ######
+#Calculate Variance for RegImp ######
 RegImpmean <- colSums(RegImp_params)*(1/M)
 RegImp_var_estimate <- colSums((RegImp_params - RegImpmean)^2)*(1/M)
 
 #QUESTION 2 #######
-B = 5# B numbers of imputation
+# B numbers of imputation
+B = 5
 
-
-bootimp_list <- list() #list of bootstrap imputed dataframes for loop
+#list of bootstrap imputed dataframes
+bootimp_list <- list()
 
 #loop for generating M imputed datasets
 for(j in 1:M){
   templist <- list()
   for(i in 1:B){
-boot_temp <- mice(amputed_list[[j]], m=B, method="norm.boot")
- templist[[i]] <-  complete(boot_temp,i) #you need to use complete(boot_temp, number of imputed set) to generate proper impute data
+    boot_temp <- mice(amputed_list[[j]], m=B, method="norm.boot")
+    templist[[i]] <-  complete(boot_temp,i) #you need to use complete(boot_temp, number of imputed set) to generate proper impute data
   }
   bootimp_list[[j]] <- templist
 }
@@ -111,8 +111,8 @@ boot_var_estimator <- (1/M)*((colSums((boot_variance - boot_mean)^2)))
 
 PCA_list <- list()
 for(j in 1:M){
-res.MIPCA <- MIPCA(amputed_list[[1]], ncp = 2, nboot  = B, method="Regularized") 
-PCA_list[[j]] <- res.MIPCA$res.MI
+  res.MIPCA <- MIPCA(amputed_list[[1]], ncp = 2, nboot  = B, method="Regularized") 
+  PCA_list[[j]] <- res.MIPCA$res.MI
 }
 #PCA_list : a list of dataframes. PCA_list[[M]][B][,1] gives you the Bth imputation from the M set.
 
@@ -148,89 +148,37 @@ PCA_mean <- PCA_Bias + B_C
 #(1) Calculate variance for each M using the coeffs in B imputations:
 PCA_variance <- matrix(ncol=3,nrow=M)
 for(j in 1:M){
-PCA_variance[j,1] <- var(PCA_Reg_list[[M]][,1]) #intercept
-PCA_variance[j,2] <- var(PCA_Reg_list[[M]][,2]) #educ
-PCA_variance[j,3] <- var(PCA_Reg_list[[M]][,3]) #exper
+  PCA_variance[j,1] <- var(PCA_Reg_list[[M]][,1]) #intercept
+  PCA_variance[j,2] <- var(PCA_Reg_list[[M]][,2]) #educ
+  PCA_variance[j,3] <- var(PCA_Reg_list[[M]][,3]) #exper
 }
 #Take the average of these:
 PCA_var_estimator <- (1/M)*colSums((PCA_variance - PCA_mean)^2)
 
-#load.image(file="alldata.RData") 
-save.image(file="alldata.RData") 
+
+
 
 # GRAPH GENERATION SECTION ######
-library(ggplot2)
 
 #A graph of one M from linear regression version. This visualizes the difference in imputed and amputed data.
 
-#placeholder variables for graphing convenience
 temp_df <- RegImp_list[[1]]
 temp_df$before_imp <- amputed_list[[1]]$waget
 temp_df$original_waget <- base3$waget
 ggplot() + 
-  geom_point(data=base3, aes(waget,educ), colour = 'gray' ,position = 'jitter') + 
-  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(original_waget,educ), colour = 'blue', alpha=0.4, position = 'jitter', shape = 1) + #original data that got amputed
+  geom_point(data=base3, aes(waget,educ), colour = 'black' ,position = 'jitter') + 
+  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(original_waget,educ), colour = 'green', alpha=0.4, position = 'jitter', shape = 1) + #original data that got amputed
   geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(waget,educ), colour = 'red', alpha=0.4,position = 'jitter', shape = 1) +
-  scale_x_continuous(limits = c(0, 5))
-
-#A graph of one M from Bootstrap regression version. This visualizes the difference in imputed and amputed data.
-
-#placeholder variables for graphing convenience
-temp_df <- bootimp_list[[1]][[1]]
-temp_df$before_imp <- amputed_list[[1]]$waget
-temp_df$original_waget <- base3$waget
-ggplot() + 
-  geom_point(data=base3, aes(waget,educ), colour = 'gray' ,position = 'jitter') + 
-  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(original_waget,educ), colour = 'blue', alpha=0.4, position = 'jitter', shape = 1) + #original data that got amputed
-  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(waget,educ), colour = 'red', alpha=0.4,position = 'jitter', shape = 1) +
-  scale_x_continuous(limits = c(0, 5))
-
-
+  scale_x_continuous(limits = c(0, 100))
 
 #graph with imputed value on Y axis and original value on X axis
 ggplot() + 
   geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(original_waget,waget), colour = 'blue', alpha=0.1)+
-  scale_x_continuous(limits = c(0,2))
+  scale_x_continuous(limits = c(0, 50))
 
-
-ggplotRegression(lm(waget ~ educ + exper, data = base3))
 
 # it is clear from our graph that the imputed data is following a linear regression/
 # it has no difference in variance.
-
-#BootImp graph
-
-
-
-boot_temp_mat <- matrix(nrow=10,ncol=3)
-for(i in 1:5){
-boot_temp_mat[i,1] <- as.numeric(rownames(boot_temp$imp$waget)[1])
-boot_temp_mat[i+5,1] <- as.numeric(rownames(boot_temp$imp$waget)[331])
-boot_temp_mat[i,2] <- t(boot_temp$imp$waget[1,i])
-boot_temp_mat[i+5,3] <- t(boot_temp$imp$waget[331,i])
-}
-
-boot_temp_df <- as.data.frame(boot_temp_mat)
-for(i in 1:5){
-boot_temp_df$educ[i] <- base3$educ[boot_temp_mat[1,1]]
-boot_temp_df$educ[i+5] <- base3$educ[boot_temp_mat[6,1]]
-}
-
-ggplot(base3, aes(x = waget, y = educ)) + 
-  geom_point( alpha=0, colour="black") +
-  stat_smooth(method = "lm", color="gray") +
-  geom_point( data=boot_temp_df, aes(V2[1],educ[1]), color="cyan") + 
-  geom_point( data=boot_temp_df, aes(V2[2],educ[2]), color="cyan1") + 
-  geom_point( data=boot_temp_df, aes(V2[3],educ[3]), color="cyan2") + 
-  geom_point( data=boot_temp_df, aes(V2[4],educ[4]), color="cyan3") + 
-  geom_point( data=boot_temp_df, aes(V2[5],educ[5]), color="cyan4") + 
-  geom_point( data=boot_temp_df, aes(V3[6],educ[6]), color="red") + 
-  geom_point( data=boot_temp_df, aes(V3[7],educ[7]), color="red1") + 
-  geom_point( data=boot_temp_df, aes(V3[8],educ[8]), color="red2") + 
-  geom_point( data=boot_temp_df, aes(V3[9],educ[9]), color="red3") + 
-  geom_point( data=boot_temp_df, aes(V3[10],educ[10]), color="red4")
-  
-
 
 
 # PCA graphs
