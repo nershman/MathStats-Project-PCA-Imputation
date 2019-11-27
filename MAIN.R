@@ -4,15 +4,16 @@ base1=test
 base2=subset(base1,base1$year88==1)
 base3=base2[,c(7,18,19)] # our UNIMPUTED dataset
 base3$waget <- log(base3$waget) # transform wage to log(wage)
+rm(base2)
+rm(base1)
 library(mice)
-
+library(VIM)
 #create parameter estimates using complete data:
 
 B_C=lm(waget ~ exper + educ, data=base3)$coefficients
 
 #number of amputed data sets to create
-#M=20
-M=2
+M=20
  
 onlywagetpattern= c(0,1,1) #only ampute waget.
 amputed_list = list() #create a matrix to assign our imputed data into.
@@ -52,7 +53,7 @@ RegImpmean <- colSums(RegImp_params)*(1/M)
 RegImp_var_estimate <- colSums((RegImp_params - RegImpmean)^2)*(1/M)
 
 #QUESTION 2 #######
-B = 5# B numbers of imputation
+B = 5# B number of imputations
 bootimp_list <- list() #list of bootstrap imputed dataframes for loop
 
 #loop for generating M imputed datasets
@@ -62,7 +63,7 @@ for(j in 1:M){
 }
 # 
 
-#Run regression on BootImp =====
+#Run regression on BootImp ######
 #construct a list object with M matrixes with B columns for holding coefficients from imputations.
 bootimp_Reg_list <- list()
 for(j in 1:M){#the pool function calculates s.e. properly, square for variance.
@@ -88,17 +89,13 @@ boot_var <- (1/M)*boot_summedCols$var
 
 PCA_list <- list()
 for(j in 1:M){
-res.MIPCA <- MIPCA(amputed_list[[1]], ncp = 2, nboot  = B, method="Regularized") 
+res.MIPCA <- MIPCA(amputed_list[[j]], ncp = 2, nboot  = B, method="Regularized") 
 PCA_list[[j]] <- res.MIPCA$res.MI
 }
 #PCA_list : a list of dataframes. PCA_list[[M]][B][,1] gives you the Bth imputation from the M set.
 
 #Run regression for PCA --------
-
-#create a list object with M matrixes with B columns for holding coefficients from imputations.
 PCA_Reg_list <- list()
-#PCA_Reg_list[[M]][B,] gives you the set of coefficients from the Bth imputation of the M set.
-
 # get the regressions and assign them to an object that can be used by mice pool function
 for(j in 1:M){
   templistPCA <- list()
@@ -107,15 +104,14 @@ for(j in 1:M){
   }
   PCA_Reg_list[[j]] <- templistPCA
 }
+
+#run pool function from mice package to get properly calculated variance across imputations.
 PCA_summary_list <- list()
-#run pool function
-for(j in 1:M){#the pool function calculates s.e. properly, square for variance.
+for(j in 1:M){#the pool function calculates s.e., square for variance.
   PCA_summary_list[[j]] <- summary(pool(PCA_Reg_list[[j]]))
   PCA_summary_list[[j]]$std.error <- summary(pool(PCA_Reg_list[[j]]))$std.error
   colnames(PCA_summary_list[[j]])[2] <- "var"
 }
-
-#PCA_Reg_list[[M]][B,] gives you the three coefficients (Intercept, educ, exper) for the Bth imputation of the Mth set.
 
 # CALCULATE BIAS AND VARIANCE FOR PCA (Slide39/61Josse) -----
 PCA_summedCols <- PCA_summary_list[[1]]
@@ -129,11 +125,11 @@ PCA_var <- (1/M)*PCA_summedCols$var
 
 #load("alldata.RData")
 #save.image(file="alldata.RData") 
-
+break
 # GRAPH GENERATION SECTION ######
 library(ggplot2)
 
-#A graph of one M from linear regression version. This visualizes the difference in imputed and amputed data.
+#A graph of one M from linear regression version. This visualizes the difference in imputed and amputed data. ########
 
 #placeholder variables for graphing convenience
 temp_df <- RegImp_list[[1]]
@@ -145,7 +141,7 @@ ggplot() +
   geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(waget,educ), colour = 'red', alpha=0.4,position = 'jitter', shape = 1) +
   scale_x_continuous(limits = c(0, 5))
 
-#A graph of one M from Bootstrap regression version. This visualizes the difference in imputed and amputed data.
+#A graph of one M from Bootstrap regression version. This visualizes the difference in imputed and amputed data. #######
 
 #placeholder variables for graphing convenience
 temp_df <- bootimp_list[[1]][[1]]
@@ -160,7 +156,7 @@ ggplot() +
 
 
 
-#graph with imputed value on Y axis and original value on X axis
+#graph with imputed value on Y axis and original value on X axis #######
 ggplot() + 
   geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(original_waget,waget), colour = 'blue', alpha=0.1)+
   scale_x_continuous(limits = c(0,2))
@@ -171,7 +167,7 @@ ggplotRegression(lm(waget ~ educ + exper, data = base3))
 # it is clear from our graph that the imputed data is following a linear regression/
 # it has no difference in variance.
 
-#BootImp graph
+#BootImp graph #########
 
 
 
