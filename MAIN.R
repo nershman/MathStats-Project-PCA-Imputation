@@ -8,12 +8,12 @@ rm(base2)
 rm(base1)
 library(mice)
 library(VIM)
-#create parameter estimates using complete data:
 
+#create parameter estimates using complete data:
 B_C=lm(waget ~ exper + educ, data=base3)$coefficients
 
-#number of amputed data sets to create
-M=20
+M=20 #number of amputed data sets to create
+B=5 #number of imputations for Q2 & 3
  
 onlywagetpattern= c(0,1,1) #only ampute waget.
 amputed_list = list() #create a matrix to assign our imputed data into.
@@ -27,8 +27,6 @@ for (j in 1:M) {
 
 #save the generated data
 save(amputed_list,    file = "FixedData.RData")
-
-#Note: to access a data frame in our list, for example the first data frame, you type amputed_list[[1]]
 
 #QUESTION 1 #######
 #Create a list of data frames for imputation by regression
@@ -45,15 +43,14 @@ for(j in 1:M){
   RegImp_params[]<- lm(waget ~ exper + educ, data=RegImp_list[[j]])$coefficients
 }
 
-#Q1: Calculate Bias for RegImp #######
+#Q1: Calculate Bias for RegImp
 RegImp_Bias_estimate <- (colSums(RegImp_params)*(1/M) - B_C)
 
-#Q2: Calculate Variance for RegImp ######
+#Q1: Calculate Variance for RegImp
 RegImpmean <- colSums(RegImp_params)*(1/M)
 RegImp_var_estimate <- colSums((RegImp_params - RegImpmean)^2)*(1/M)
 
-#QUESTION 2 #######
-B = 5# B number of imputations
+#QUESTION 2 ########
 bootimp_list <- list() #list of bootstrap imputed dataframes for loop
 
 #loop for generating M imputed datasets
@@ -61,11 +58,9 @@ for(j in 1:M){
   boot_temp <- mice(amputed_list[[j]], m=B, method="norm.boot")
   bootimp_list[[j]] <- boot_temp
 }
-# 
 
-#Run regression on BootImp ######
-#construct a list object with M matrixes with B columns for holding coefficients from imputations.
-bootimp_Reg_list <- list()
+#Run regression on BootImp
+bootimp_Reg_list <- list() #list for holding regression objects
 for(j in 1:M){#the pool function calculates s.e. properly, square for variance.
   bootimp_Reg_temp <- with(bootimp_list[[j]], lm(waget ~ educ + exper))
   bootimp_Reg_list[[j]] <- summary(pool(bootimp_Reg_temp))
@@ -73,8 +68,9 @@ for(j in 1:M){#the pool function calculates s.e. properly, square for variance.
   colnames(bootimp_Reg_list[[j]])[2] <- "var"
 }
 
-# CALCULATE BIAS AND VARIANCE FOR BOOTIMP -----
+#CALCULATE BIAS AND VARIANCE FOR BOOTIMP
 
+#add the coefficients together
 boot_summedCols <- bootimp_Reg_list[[1]]
 for(j in 2:M){
   boot_summedCols <- boot_summedCols + bootimp_Reg_list[[j]]
@@ -92,11 +88,10 @@ for(j in 1:M){
 res.MIPCA <- MIPCA(amputed_list[[j]], ncp = 2, nboot  = B, method="Regularized") 
 PCA_list[[j]] <- res.MIPCA$res.MI
 }
-#PCA_list : a list of dataframes. PCA_list[[M]][B][,1] gives you the Bth imputation from the M set.
 
-#Run regression for PCA --------
-PCA_Reg_list <- list()
+#Run regression for PCA
 # get the regressions and assign them to an object that can be used by mice pool function
+PCA_Reg_list <- list()
 for(j in 1:M){
   templistPCA <- list()
   for(i in 1:B){
@@ -113,7 +108,7 @@ for(j in 1:M){#the pool function calculates s.e., square for variance.
   colnames(PCA_summary_list[[j]])[2] <- "var"
 }
 
-# CALCULATE BIAS AND VARIANCE FOR PCA (Slide39/61Josse) -----
+# CALCULATE BIAS AND VARIANCE FOR PCA
 PCA_summedCols <- PCA_summary_list[[1]]
 for(j in 2:M){
   PCA_summedCols <- PCA_summedCols + PCA_summary_list[[j]]
@@ -125,7 +120,7 @@ PCA_var <- (1/M)*PCA_summedCols$var
 
 #load("alldata.RData")
 #save.image(file="alldata.RData") 
-break
+
 # GRAPH GENERATION SECTION ######
 library(ggplot2)
 
@@ -202,11 +197,11 @@ ggplot(base3, aes(x = waget, y = educ)) +
 
 # DEBUG
 
-impdebug <- mice(mammalsleep, maxit = 3)
+
 
 # PCA graphs
-
-# library(Amelia)
-#> res.amelia <- amelia(don, m = 100)
-#> compare.density(res.amelia, var = "T12")
-#> overimpute(res.amelia, var = "maxO3")
+#plot.MIPCA
+plot(res.MIPCA, choce="var")
+plot(res.MIPCA, choce="ind.supp")
+plot(res.MIPCA, choce="ind.proc")
+plot(res.MIPCA, choce="dim")
