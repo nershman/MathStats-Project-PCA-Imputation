@@ -1,4 +1,7 @@
 #INITIALIZATION #########
+library(mice)
+library(VIM)
+library(dplyr)
 load("~/Desktop/LEARNING/M1/S1/Math Stats 1/Project/men7988_cell.RData")
 base1=test
 base2=subset(base1,base1$year88==1)
@@ -6,8 +9,7 @@ base3=base2[,c(7,18,19)] # our UNIMPUTED dataset
 base3$waget <- log(base3$waget) # transform wage to log(wage)
 rm(base2)
 rm(base1)
-library(mice)
-library(VIM)
+
 
 #create parameter estimates using complete data:
 B_C=lm(waget ~ exper + educ, data=base3)$coefficients
@@ -80,7 +82,7 @@ boot_Bias <- (1/M)*boot_summedCols$estimate - B_C
 boot_var <- (1/M)*boot_summedCols$var
 
 #QUESTION 3 #######
-
+library(missMDA)
 # We use NCP = 2 because we have two regressors educ and exper.
 
 PCA_list <- list()
@@ -164,8 +166,10 @@ ggplotRegression(lm(waget ~ educ + exper, data = base3))
 
 #BootImp graph #########
 
+#graph of iterations for bootimp
+plot(boot_temp,layout=c(2,1)) #graphs the mean and standard deviation for each iteration. (1 on left, 5 on right
 
-
+#graph of the imputed data on an x-y plot with educ
 boot_temp_mat <- matrix(nrow=10,ncol=3)
 for(i in 1:5){
 boot_temp_mat[i,1] <- as.numeric(rownames(boot_temp$imp$waget)[1])
@@ -193,15 +197,23 @@ ggplot(base3, aes(x = waget, y = educ)) +
   geom_point( data=boot_temp_df, aes(V3[8],educ[8]), color="red2") + 
   geom_point( data=boot_temp_df, aes(V3[9],educ[9]), color="red3") + 
   geom_point( data=boot_temp_df, aes(V3[10],educ[10]), color="red4")
-  
-
-# DEBUG
-
 
 
 # PCA graphs
-#plot.MIPCA
-plot(res.MIPCA, choce="var")
-plot(res.MIPCA, choce="ind.supp")
-plot(res.MIPCA, choce="ind.proc")
-plot(res.MIPCA, choce="dim")
+
+#genearte graphs on a subsample of 100 (large numbers take too long to render or can't render, as every datapoint is drawn)
+small_df <- amputed_list[[1]][sample(nrow(amputed_list[[1]]), 100), ]
+res.22 <- MIPCA(small_df, ncp = 2, nboot  = B, method="Regularized") 
+plot(res.22)
+
+
+#x-y plot visualation
+
+temp_df <- PCA_list[[1]]
+temp_df$before_imp <- amputed_list[[1]]$waget
+temp_df$original_waget <- base3$waget
+ggplot() + 
+  geom_point(data=base3, aes(waget,educ), colour = 'gray' ,position = 'jitter') + 
+  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(original_waget,educ), colour = 'blue', alpha=0.4, position = 'jitter', shape = 1) + #original data that got amputed
+  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(waget,educ), colour = 'red', alpha=0.4,position = 'jitter', shape = 1) +
+  scale_x_continuous(limits = c(0, 5))
