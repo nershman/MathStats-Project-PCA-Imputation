@@ -47,10 +47,12 @@ for(j in 1:M){
 
 #Q1: Calculate Bias for RegImp
 RegImp_Bias_estimate <- (colSums(RegImp_params)*(1/M) - B_C)
+RegImp_educ_Bias <- RegImp_Bias_estimate[3]
 
 #Q1: Calculate Variance for RegImp
 RegImpmean <- colSums(RegImp_params)*(1/M)
 RegImp_var_estimate <- colSums((RegImp_params - RegImpmean)^2)*(1/M)
+RegImp_educ_var <- RegImp_var_estimate[3]
 
 #QUESTION 2 ########
 bootimp_list <- list() #list of bootstrap imputed dataframes for loop
@@ -79,7 +81,9 @@ for(j in 2:M){
 }
 
 boot_Bias <- (1/M)*boot_summedCols$estimate - B_C
+boot_educ_bias <- boot_Bias[3]
 boot_var <- (1/M)*boot_summedCols$var
+boot_educ_var <- boot_var[3]
 
 #QUESTION 3 #######
 library(missMDA)
@@ -87,7 +91,7 @@ library(missMDA)
 
 PCA_list <- list()
 for(j in 1:M){
-res.MIPCA <- MIPCA(amputed_list[[j]], ncp = 2, nboot  = B, method="Regularized") 
+res.MIPCA <- MIPCA(amputed_list[[j]], ncp = 2, nboot  = B, method="Regularized", method.mi = "Bayes", Lstart = 5, L= 1)  #iterative PCA with 5 iterations and 5 imputation
 PCA_list[[j]] <- res.MIPCA$res.MI
 }
 
@@ -102,7 +106,7 @@ for(j in 1:M){
   PCA_Reg_list[[j]] <- templistPCA
 }
 
-#run pool function from mice package to get properly calculated variance across imputations.
+#run pool function from mice package, in order to properly calculate variance across imputations.
 PCA_summary_list <- list()
 for(j in 1:M){#the pool function calculates s.e., square for variance.
   PCA_summary_list[[j]] <- summary(pool(PCA_Reg_list[[j]]))
@@ -117,11 +121,13 @@ for(j in 2:M){
 }
 
 PCA_Bias <- (1/M)*PCA_summedCols$estimate - B_C
+PCA_educ_bias <- PCA_Bias[3]
 PCA_var <- (1/M)*PCA_summedCols$var
+PCA_educ_var <- PCA_var[3]
 
 
 #load("alldata.RData")
-#save.image(file="alldata.RData") 
+save.image(file="alldata.RData") 
 
 # GRAPH GENERATION SECTION ######
 library(ggplot2)
@@ -133,22 +139,22 @@ temp_df <- RegImp_list[[1]]
 temp_df$before_imp <- amputed_list[[1]]$waget
 temp_df$original_waget <- base3$waget
 ggplot() + 
-  geom_point(data=base3, aes(waget,educ), colour = 'gray' ,position = 'jitter') + 
-  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(original_waget,educ), colour = 'blue', alpha=0.4, position = 'jitter', shape = 1) + #original data that got amputed
-  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(waget,educ), colour = 'red', alpha=0.4,position = 'jitter', shape = 1) +
-  scale_x_continuous(limits = c(0, 5))
+  geom_point(data=base3, aes(educ,waget), colour = 'gray' ,position = 'jitter') + 
+  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(educ,original_waget), colour = 'blue', alpha=0.4, position = 'jitter', shape = 1) + #original data that got amputed
+  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(educ,waget), colour = 'red', alpha=0.4,position = 'jitter', shape = 1) +
+  scale_y_continuous(limits = c(0, 5))
 
 #A graph of one M from Bootstrap regression version. This visualizes the difference in imputed and amputed data. #######
 
 #placeholder variables for graphing convenience
-temp_df <- bootimp_list[[1]][[1]]
+temp_df <- complete(bootimp_list[[1]],1)
 temp_df$before_imp <- amputed_list[[1]]$waget
 temp_df$original_waget <- base3$waget
 ggplot() + 
-  geom_point(data=base3, aes(waget,educ), colour = 'gray' ,position = 'jitter') + 
-  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(original_waget,educ), colour = 'blue', alpha=0.4, position = 'jitter', shape = 1) + #original data that got amputed
-  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(waget,educ), colour = 'red', alpha=0.4,position = 'jitter', shape = 1) +
-  scale_x_continuous(limits = c(0, 5))
+  geom_point(data=base3, aes(educ,waget), colour = 'gray' ,position = 'jitter') + 
+  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(educ,original_waget), colour = 'blue', alpha=0.4, position = 'jitter', shape = 1) + #original data that got amputed
+  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(educ,waget), colour = 'red', alpha=0.4,position = 'jitter', shape = 1) +
+  scale_y_continuous(limits = c(0, 5))
 
 
 
@@ -158,11 +164,6 @@ ggplot() +
   geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(original_waget,waget), colour = 'blue', alpha=0.1)+
   scale_x_continuous(limits = c(0,2))
 
-
-ggplotRegression(lm(waget ~ educ + exper, data = base3))
-
-# it is clear from our graph that the imputed data is following a linear regression/
-# it has no difference in variance.
 
 #BootImp graph #########
 
@@ -201,19 +202,15 @@ ggplot(base3, aes(x = waget, y = educ)) +
 
 # PCA graphs
 
-#genearte graphs on a subsample of 100 (large numbers take too long to render or can't render, as every datapoint is drawn)
+#generate graphs on a subsample of 100 (large numbers take too long to render or can't render, as every datapoint is drawn)
 small_df <- amputed_list[[1]][sample(nrow(amputed_list[[1]]), 100), ]
 res.22 <- MIPCA(small_df, ncp = 2, nboot  = B, method="Regularized") 
 plot(res.22)
+plot(res.22 ,choice="ind.supp")
+plot(res.22, choice="ind.proc")
 
 
-#x-y plot visualation
 
-temp_df <- PCA_list[[1]]
-temp_df$before_imp <- amputed_list[[1]]$waget
-temp_df$original_waget <- base3$waget
-ggplot() + 
-  geom_point(data=base3, aes(waget,educ), colour = 'gray' ,position = 'jitter') + 
-  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(original_waget,educ), colour = 'blue', alpha=0.4, position = 'jitter', shape = 1) + #original data that got amputed
-  geom_point(data = subset(temp_df, is.na(temp_df$before_imp)), aes(waget,educ), colour = 'red', alpha=0.4,position = 'jitter', shape = 1) +
-  scale_x_continuous(limits = c(0, 5))
+#overimpute graph. original value is on x axis, imputed value is on y axis.
+Overimpute(res.MIPCA, plotvars=1)
+
